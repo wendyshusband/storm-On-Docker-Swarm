@@ -1,26 +1,24 @@
-# storm-On-Docker-Swarm
-Basic deploying apache storm on docker with docker swarm
-
-baseUbuntu,storm,zookeeper:some docker file and enterpoint script
+# Storm-On-Docker-Swarm
+Basic deploying apache storm on docker with docker swarm. baseUbuntu,storm,zookeeper:some docker file and enterpoint script
 
 This guide reference [The joy of deploying Apache Storm on Docker Swarm](http://highscalability.com/blog/2016/4/25/the-joy-of-deploying-apache-storm-on-docker-swarm.html) in [Baqend Tech](http://www.baqend.com/).And we describe some of the detail and principles about every step in this tutorial.If you have already have a good use of Linux,Docker swarm and Apache storm,you can use script given in the article above for rapid deployment. This tutorial is targeted at beginner novice.We will manual configuration on each machine and you will be more clear understand the principle in the process of deployment .
 
 So let’s begin :
 
 
-#Overall Architecture 
+# Overall Architecture 
 ![](1.png)
 
 You’ll have 3 machines running Ubuntu Server 14.04, each of which will be running a Docker daemon with several containers inside. As shown in figure above ,we use ubuntu1 as manager of Docker swarm. The Nimbus and UI containers will be spawned on the manager node (Ubuntu 1).Beside ,remember to open port 8080 for UI container. 
 When swarm is in place ,you’ll create an overlay network (stormnet) to enable communication between Docker container hosted on the different swarm nodes. Finally, you will set up a full-fledged storm cluster that uses the existing zookeeper ensemble for coordination and stormnet for inter-node communication. This involves discovery service of Docker swarm ,you can read [here](https://technologyconversations.com/2015/09/08/service-discovery-zookeeper-vs-etcd-vs-consul/).
 We are using hostnames dmir1,dmir2 and dmir3 for the three Ubuntu machines. Using alias rather than an IP address can have better fault tolerance. At the time of the actual deployment ,remember to replace your own domain name. Three zookeeper severs are deployed here, of course,using one zookeeper is also possible. 
 
-#Install Docker
+# Install Docker
 
 Using your favorite way to connect three machines and install Docker on each machine. You can reference [here](https://docs.docker.com/engine/installation/linux/ubuntulinux/) to install Docker. After the installation is complete,we should test to ensure that the installation is successful.
 
 
-#Create /etc/init.sh
+# Create /etc/init.sh
 
 Create the file used to configure the Docker swarm worker.
 
@@ -54,7 +52,7 @@ and then paste the following and save:
 In this shell file, we configure some detail for start a swarm worker. The first step , we defined three zookeeper server node ,through the ZOOKEEPER_SERVERS variable. The second step, we parse */sbin/ifconfig eth0* to get the IP address of the machine($PRIVATE_IP). The third step, we mark the label “manager ” for swarm manager node. The fourth step, modify */ect/default/docker*, including some content such as docker daemon listening port 2375,which can refer to the configuration of the docker on the [https://docs.docker.com/](https://docs.docker.com/). The fifth step, restart Docker service. The last step, *docker run* a swarm worker container ,and use zookeeper as the service discovery.  
 
 
-#Create swarm worker
+# Create swarm worker
 
 In the terminal of Ubuntu1 ,type :
 
@@ -68,7 +66,7 @@ set up your DNS in such a way that the first hostname in the list (dmir1) points
 Configure your security settings to allow connections between the machines on ports 2181, 2888, 3888 (zookeeper), 2375 (Docker Swarm) and 6627 (Storm, remote topology deployment).
 If nothing has gone wrong, you should now have three Ubuntu servers, each running a Docker daemon. Ubuntu 1 should be reachable via dmir1 in your private network. Now, we can only configuration on Ubuntu1, it is going to be the only machine you will talk to from this point on.
 
-#Start Docker swarm cluster and zookeeper server 
+# Start Docker swarm cluster and zookeeper server 
 
 Using *docker ps* to perform a quick heal check. If Docker is installed correctly, the terminal will show a list of the running Docker container (exactly 1 for swarm and nothing else ) 
 
@@ -119,7 +117,7 @@ The important part is the line with Status: Healthy for each node. If you obse
 >docker restart $(docker ps -a --no-trunc --filter "label=role=manager)
 
 
-#Setup the storm cluster 
+# Setup the storm cluster 
 
 First, create the overlay network stormnet. This network is guaranteed the mapping relationship between container and physical machine.you can reference [here](https://docs.docker.com/engine/userguide/networking/get-started-overlay/).
 
@@ -154,7 +152,7 @@ Since we do not care where exactly the individual supervisors are running, we di
 Have a look at the Storm UI and make sure that you have supervisors running.
 
 
-#Topology Deployment
+# Topology Deployment
 
 Deploying a topology can now be done from any server that has a Docker daemon running and is in the same network as the manager machine. The following command assumes that your topology fatjar is a file called topology.jar in your current working directory:
 
@@ -165,7 +163,7 @@ This command will spawn a Docker container, deploy the topology and then remove 
 Last but most important , *--net stormnet* is necessary, because you spawn a new container for deploy the topology, so this new container must under the stormnet ,otherwise it will return a *unknownhost error*.
 
 
-#Killing a Topology
+# Killing a Topology
 
 Killing the topology can either be done via the Storm web UI interactively or, assuming the running topology is called runningTopology, like this:
 
@@ -173,7 +171,7 @@ Killing the topology can either be done via the Storm web UI interactively or, a
 
 The host argument -H ... is not required here, because the statement stands on its own and has no file dependencies.
 
-#Topology Rebalance
+# Topology Rebalance
 
 Topology rebalance can either be done via the Storm web UI interactively or, assuming the running topology is called runningTopology, like this:
 
